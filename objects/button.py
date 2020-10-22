@@ -1,3 +1,5 @@
+import pygame
+
 from third_party.button import Button
 from constants import BLUE, GREEN, BLACK, ORANGE
 from objects.base import DrawableObject
@@ -13,16 +15,8 @@ class ButtonObject(DrawableObject):
 
     def __init__(self, game, x, y, width, height, color, function, text):
         super().__init__(game)
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.color = color
-        self.function = function
-        self.text = text
-        self.button = Button(
-            (self.x, self.y, self.width, self.height),
-            self.color, self.function, text=self.text, **self.BUTTON_STYLE)
+        self.rect = pygame.rect.Rect(x, y, width, height)
+        self.button = Button((x, y, width, height), color, function, text=text, **self.BUTTON_STYLE)
 
     def process_event(self, event):
         self.button.check_event(event)
