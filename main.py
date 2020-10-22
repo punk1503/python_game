@@ -12,17 +12,57 @@ BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 ORANGE = (255, 180, 0)
 
-size = width, height = 800, 600
-current_scene_index = 0
+
+class DrawableObject:
+    def __init__(self, game):
+        self.game = game
+
+    def process_event(self, event):
+        pass
+
+    def process_logic(self):
+        pass
+
+    def process_draw(self):
+        pass  # use self.game.screen, padawan
 
 
-class Ball:
+class ButtonObject(DrawableObject):
+    BUTTON_STYLE = {
+        "hover_color": BLUE,
+        "clicked_color": GREEN,
+        "clicked_font_color": BLACK,
+        "hover_font_color": ORANGE,
+    }
+
+    def __init__(self, game, x, y, width, height, color, function, text):
+        super().__init__(game)
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.color = color
+        self.function = function
+        self.text = text
+        self.button = Button(
+            (self.x, self.y, self.width, self.height),
+            self.color, self.function, text=self.text, **self.BUTTON_STYLE)
+
+    def process_event(self, event):
+        self.button.check_event(event)
+
+    def process_draw(self):
+        self.button.update(self.game.screen)
+
+
+class BallObject(DrawableObject):
     image = pygame.image.load('basketball.png')
 
-    def __init__(self):
+    def __init__(self, game):
+        super().__init__(game)
         self.rect = self.image.get_rect()
-        self.rect.x = randint(10, width - self.rect.width - 10)
-        self.rect.y = randint(10, height - self.rect.height - 10)
+        self.rect.x = randint(10, game.width - self.rect.width - 10)
+        self.rect.y = randint(10, game.height - self.rect.height - 10)
         self.speed = [randint(-2, 2), randint(-2, 2)]
         self.radius = self.rect.width // 2
 
@@ -33,97 +73,120 @@ class Ball:
         self.speed, other.speed = other.speed, self.speed
 
     def process_logic(self):
-        if self.rect.right >= width or self.rect.left <= 0:
+        if self.rect.right >= self.game.width or self.rect.left <= 0:
             self.speed[0] *= -1
-        if self.rect.bottom >= height or self.rect.top <= 0:
+        if self.rect.bottom >= self.game.height or self.rect.top <= 0:
             self.speed[1] *= -1
 
         self.rect.x += self.speed[0]
         self.rect.y += self.speed[1]
 
-    def process_draw(self, screen):
-        screen.blit(self.image, self.rect)
+    def process_draw(self):
+        self.game.screen.blit(self.image, self.rect)
 
 
-def start_game():
-    global current_scene_index
-    current_scene_index = 1
+class BaseScene:
+    def __init__(self, game):
+        self.game = game
+        self.objects = []
 
-
-class MenuScene:
-
-    def __init__(self):
-        BUTTON_STYLE = {
-            "hover_color": BLUE,
-            "clicked_color": GREEN,
-            "clicked_font_color": BLACK,
-            "hover_font_color": ORANGE,
-        }
-        self.button1 = Button((width // 2 - 100, height // 2 - 20 - 25, 200, 50),
-                         RED, start_game, text='Запуск игры', **BUTTON_STYLE)
-        self.button2 = Button((width // 2 - 100, height // 2 + 25, 200, 50),
-                         RED, exit, text='Выход', **BUTTON_STYLE)
-
-    def process_events(self, event):
-        self.button1.check_event(event)
-        self.button2.check_event(event)
+    def process_event(self, event):
+        for object in self.objects:
+            object.process_event(event)
 
     def process_logic(self):
-        pass
+        for object in self.objects:
+            object.process_logic()
 
-    def process_draw(self, screen):
-        self.button1.update(screen)
-        self.button2.update(screen)
+    def process_draw(self):
+        for object in self.objects:
+            object.process_draw()
 
 
-class GameScene:
+class MenuScene(BaseScene):
+    def __init__(self, game):
+        super().__init__(game)
+        self.objects.append(
+            ButtonObject(
+                self.game,
+                self.game.width // 2 - 100,
+                self.game.height // 2 - 20 - 25,
+                200,
+                50,
+                RED,
+                self.start_game,
+                text='Запуск игры'
+            )
+        )
+        self.objects.append(
+            ButtonObject(
+                self.game,
+                self.game.width // 2 - 100,
+                self.game.height // 2 + 25,
+                200,
+                50,
+                RED,
+                exit,
+                text='Выход'
+            )
+        )
 
-    def __init__(self):
-        self.balls = [Ball() for i in range(5)]
+    def start_game(self):
+        self.game.current_scene_index = 1
 
-    def process_events(self, event):
-        pass
+
+class GameScene(BaseScene):
+    def __init__(self, game):
+        super().__init__(game)
+        self.objects = [BallObject(game) for i in range(5)]
 
     def process_logic(self):
-        for ball in self.balls:
-            ball.process_logic()
-        for i in range(len(self.balls) - 1):
-            for j in range(i + 1, len(self.balls)):
-                if self.balls[i].collides_with(self.balls[j]):
-                    self.balls[i].bounce(self.balls[j])
+        super().process_logic()
 
-    def process_draw(self, screen):
-        for ball in self.balls:
-            ball.process_draw(screen)
+        for i in range(len(self.objects) - 1):
+            for j in range(i + 1, len(self.objects)):
+                if self.objects[i].collides_with(self.objects[j]):
+                    self.objects[i].bounce(self.objects[j])
+
+
+class Game:
+    size = width, height = 800, 600
+    current_scene_index = 0
+
+    def __init__(self):
+        self.screen = pygame.display.set_mode(self.size)
+        self.scenes = [
+            MenuScene(self),
+            GameScene(self)
+        ]
+        self.game_over = False
+
+    def process_all_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.game_over = True
+            self.scenes[self.current_scene_index].process_event(event)
+
+    def process_all_logic(self):
+        self.scenes[self.current_scene_index].process_logic()
+
+    def process_all_draw(self):
+        self.screen.fill(BLACK)
+        self.scenes[self.current_scene_index].process_draw()
+        pygame.display.flip()
+
+    def main_loop(self):
+        while not self.game_over:
+            self.process_all_events()
+            self.process_all_logic()
+            self.process_all_draw()
+            pygame.time.wait(10)
 
 
 def main():
     pygame.init()
-    screen = pygame.display.set_mode(size)
-
-    scenes = [
-        MenuScene(),
-        GameScene()
-    ]
-
-    game_over = False
-    while not game_over:
-        # Обработка событий
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                game_over = True
-            scenes[current_scene_index].process_events(event)
-
-        # Логика игры
-        scenes[current_scene_index].process_logic()
-
-        # Отрисовка
-        screen.fill(BLACK)
-        scenes[current_scene_index].process_draw(screen)
-
-        pygame.display.flip()
-        pygame.time.wait(10)
-
+    game = Game()
+    game.main_loop()
     sys.exit()
 
 
