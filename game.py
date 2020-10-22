@@ -2,6 +2,7 @@ import pygame
 
 from constants import BLACK
 from scenes.game import GameScene
+from scenes.gameover import GameOverScene
 from scenes.menu import MenuScene
 
 
@@ -21,7 +22,8 @@ class Game:
         self.screen = pygame.display.set_mode(self.size)
         self.scenes = [
             MenuScene(self),
-            GameScene(self)
+            GameScene(self),
+            GameOverScene(self)
         ]
         self.game_over = False
 
