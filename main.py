@@ -5,8 +5,6 @@ from random import randint
 
 from button import Button
 
-
-
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 GREEN = (0, 255, 0)
@@ -15,15 +13,16 @@ WHITE = (255, 255, 255)
 ORANGE = (255, 180, 0)
 
 size = width, height = 800, 600
-game_start = False
+current_scene_index = 0
+
 
 class Ball:
     image = pygame.image.load('basketball.png')
 
     def __init__(self):
         self.rect = self.image.get_rect()
-        self.rect.x = randint(10, width-self.rect.width - 10)
-        self.rect.y = randint(10, height-self.rect.height - 10)
+        self.rect.x = randint(10, width - self.rect.width - 10)
+        self.rect.y = randint(10, height - self.rect.height - 10)
         self.speed = [randint(-2, 2), randint(-2, 2)]
         self.radius = self.rect.width // 2
 
@@ -46,64 +45,82 @@ class Ball:
         screen.blit(self.image, self.rect)
 
 
-
 def start_game():
-    print('Trying to start the game')
+    global current_scene_index
+    current_scene_index = 1
+
+
+class MenuScene:
+
+    def __init__(self):
+        BUTTON_STYLE = {
+            "hover_color": BLUE,
+            "clicked_color": GREEN,
+            "clicked_font_color": BLACK,
+            "hover_font_color": ORANGE,
+        }
+        self.button1 = Button((width // 2 - 100, height // 2 - 20 - 25, 200, 50),
+                         RED, start_game, text='Запуск игры', **BUTTON_STYLE)
+        self.button2 = Button((width // 2 - 100, height // 2 + 25, 200, 50),
+                         RED, exit, text='Выход', **BUTTON_STYLE)
+
+    def process_events(self, event):
+        self.button1.check_event(event)
+        self.button2.check_event(event)
+
+    def process_logic(self):
+        pass
+
+    def process_draw(self, screen):
+        self.button1.update(screen)
+        self.button2.update(screen)
+
+
+class GameScene:
+
+    def __init__(self):
+        self.balls = [Ball() for i in range(5)]
+
+    def process_events(self, event):
+        pass
+
+    def process_logic(self):
+        for ball in self.balls:
+            ball.process_logic()
+        for i in range(len(self.balls) - 1):
+            for j in range(i + 1, len(self.balls)):
+                if self.balls[i].collides_with(self.balls[j]):
+                    self.balls[i].bounce(self.balls[j])
+
+    def process_draw(self, screen):
+        for ball in self.balls:
+            ball.process_draw(screen)
 
 
 def main():
     pygame.init()
-
-    pygame.mixer.init()
-
-    BUTTON_STYLE = {
-        "hover_color": BLUE,
-        "clicked_color": GREEN,
-        "clicked_font_color": BLACK,
-        "hover_font_color": ORANGE,
-    }
-
     screen = pygame.display.set_mode(size)
 
-
-    balls = [Ball() for i in range(5)]
+    scenes = [
+        MenuScene(),
+        GameScene()
+    ]
 
     game_over = False
-    button1 = Button((width // 2 - 100, height // 2 - 20 - 25, 200, 50),
-                     RED, start_game, text='Запуск игры', **BUTTON_STYLE)
-    button2 = Button((width // 2 - 100, height // 2 + 25, 200, 50),
-                     RED, exit, text='Выход', **BUTTON_STYLE)
-
-
     while not game_over:
         # Обработка событий
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 game_over = True
-            if not game_start:
-                pass
-            else:
-                button1.check_event(event)
-                button2.check_event(event)
+            scenes[current_scene_index].process_events(event)
 
-        if not game_start:
-            pass
-        else:
-            for ball in balls:
-                ball.process_logic()
-            for i in range(len(balls) - 1):
-                for j in range(i + 1, len(balls)):
-                    if balls[i].collides_with(balls[j]):
-                        balls[i].bounce(balls[j])
+        # Логика игры
+        scenes[current_scene_index].process_logic()
 
         # Отрисовка
         screen.fill(BLACK)
-        if not game_start:
-            button1.update(screen)
-            button2.update(screen)
-        else:
-            for ball in balls:
-                ball.process_draw(screen)
+        scenes[current_scene_index].process_draw(screen)
+
         pygame.display.flip()
         pygame.time.wait(10)
 
