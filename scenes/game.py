@@ -15,10 +15,13 @@ class GameScene(BaseScene):
         super().__init__(game)
         self.balls = [BallObject(game) for _ in range(GameScene.balls_count)]
         self.collision_count = 0
+        self.score = 0
         self.status_text = TextObject(self.game, 0, 0, self.get_collisions_text(), (255, 255, 255))
+        self.score_text = TextObject(self.game, 0, 0, self.get_score_text(), (255, 255, 255))
         self.status_text.move(10, 10)
         self.objects += self.balls
         self.objects.append(self.status_text)
+        self.objects.append(self.score_text)
         self.reset_balls_position()
 
     def process_event(self, event):
@@ -46,10 +49,13 @@ class GameScene(BaseScene):
 
     def on_activate(self):
         self.collision_count = 0
+        self.score = 0
         self.reset_balls_position()
         self.set_random_unique_position()
         self.status_text.update_text(self.get_collisions_text())
         self.status_text.move(10, 10)
+        self.score_text.update_text(self.get_score_text())
+        self.score_text.move(10, 40)
 
     def check_ball_intercollisions(self):
         for i in range(len(self.balls) - 1):
@@ -59,6 +65,9 @@ class GameScene(BaseScene):
 
     def get_collisions_text(self):
         return 'Wall collisions: {}/{}'.format(self.collision_count, GameScene.max_collisions)
+    
+    def get_score_text(self):
+        return 'Score: ' + str(int(self.score))
 
     def check_ball_edge_collision(self):
         for ball in self.balls:
@@ -67,12 +76,18 @@ class GameScene(BaseScene):
                 self.status_text.update_text(self.get_collisions_text())
                 self.status_text.move(10, 10)
 
+    def increase_score(self):
+        self.score += 0.01
+        self.score_text.update_text(self.get_score_text())
+        self.score_text.move(10, 40)
+
     def check_game_over(self):
         if self.collision_count >= GameScene.max_collisions:
             self.game.set_scene(self.game.SCENE_GAMEOVER)
 
     def process_logic(self):
         super().process_logic()
+        self.increase_score()
         self.check_ball_intercollisions()
         self.check_ball_edge_collision()
         self.check_game_over()
