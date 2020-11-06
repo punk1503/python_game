@@ -33,7 +33,11 @@ class BallObject(ImageObject):
 
     def edge_collision(self):
         return self.horisontal_edge_collision() or self.vertical_edge_collision()
-
+    
+    def check_platform_collision(self, platform):
+        if self.rect.colliderect(platform.rect):
+            self.speed[1] *= -1
+        
     def check_borders(self):
         if self.vertical_edge_collision():
             self.speed[0] *= -1
