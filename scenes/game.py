@@ -5,6 +5,7 @@ import pygame
 from objects.ball import BallObject
 from objects.text import TextObject
 from scenes.base import BaseScene
+from objects.platform import Platform
 
 
 class GameScene(BaseScene):
@@ -14,6 +15,7 @@ class GameScene(BaseScene):
     def __init__(self, game):
         super().__init__(game)
         self.balls = [BallObject(game) for _ in range(GameScene.balls_count)]
+        self.platform = Platform(game, 'images/brick.png', game.width//2 + 50, game.height - 50, 4)
         self.collision_count = 0
         self.score = 0
         self.status_text = TextObject(self.game, 0, 0, self.get_collisions_text(), (255, 255, 255))
@@ -22,12 +24,15 @@ class GameScene(BaseScene):
         self.objects += self.balls
         self.objects.append(self.status_text)
         self.objects.append(self.score_text)
+        self.objects.append(self.platform)
+
         self.reset_balls_position()
 
     def process_event(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 self.game.set_scene(self.game.SCENE_MENU)
+        self.platform.process_event(event)
 
     def get_random_position(self, radius):
         return randint(10, self.game.width - radius*2 - 10), randint(10, self.game.height - radius*2 - 10)
@@ -84,10 +89,16 @@ class GameScene(BaseScene):
     def check_game_over(self):
         if self.collision_count >= GameScene.max_collisions:
             self.game.set_scene(self.game.SCENE_GAMEOVER)
-
+    
+    def check_ball_platform_collision(self):
+        for ball_ndx in range(len(self.balls)):
+            self.balls[ball_ndx].check_platform_collision(self.platform)
+        
     def process_logic(self):
         super().process_logic()
         self.increase_score()
-        self.check_ball_intercollisions()
         self.check_ball_edge_collision()
+        self.check_ball_intercollisions()
+        self.check_ball_platform_collision()
+        self.platform.move()
         self.check_game_over()
