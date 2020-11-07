@@ -18,6 +18,8 @@ class GameScene(BaseScene):
         self.platform = Platform(game, 'images/brick.png', game.width//2 + 50, game.height - 50, 4)
         self.collision_count = 0
         self.score = 0
+        self.hs_arr = []
+        self.update_highs_scores()
         self.status_text = TextObject(self.game, 0, 0, self.get_collisions_text(), (255, 255, 255))
         self.score_text = TextObject(self.game, 0, 0, self.get_score_text(), (255, 255, 255))
         self.status_text.move(10, 10)
@@ -86,8 +88,19 @@ class GameScene(BaseScene):
         self.score_text.update_text(self.get_score_text())
         self.score_text.move(10, 40)
 
+    def add_new_highscore(self):
+        with open('highscores.txt', 'a') as hs_file:
+            hs_file.writelines('\n' + str(self.score))
+        print('Highscore has been written')
+
+    def update_highs_scores(self):
+        with open('highscores.txt', 'r') as hs_file:
+            self.hs_arr = [round(float(i), 2) for i in hs_file.readlines()]
+    
     def check_game_over(self):
         if self.collision_count >= GameScene.max_collisions:
+            self.add_new_highscore()
+            self.update_highs_scores()
             self.game.set_scene(self.game.SCENE_GAMEOVER)
     
     def check_ball_platform_collision(self):
