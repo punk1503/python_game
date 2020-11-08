@@ -90,7 +90,7 @@ class GameScene(BaseScene):
 
     def add_new_highscore(self):
         with open('highscores.txt', 'a') as hs_file:
-            hs_file.writelines('\n' + str(self.score))
+            hs_file.writelines('\n' + str(round(self.score, 2)))
         print('Highscore has been written')
 
     def update_highs_scores(self):

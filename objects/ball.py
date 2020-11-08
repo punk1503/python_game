@@ -38,6 +38,7 @@ class BallObject(ImageObject):
         if self.rect.colliderect(platform.rect):
             if self.speed[1] < 5:
                 self.speed[1] = -self.speed[1] - 0.1
+                self.rect.y -= 2
         
     def check_borders(self):
         if self.vertical_edge_collision():
